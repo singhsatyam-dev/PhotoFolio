@@ -3,16 +3,48 @@ import { useState, useRef, useEffect } from "react";
 import Spinner from "react-spinner-material";
 import { ImageForm } from "../imageForm/ImageForm";
 import { Carousel } from "../carousel/Carousel";
-export const ImagesList = () => {
+import { db } from "../../firebase";
+import {
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  query,
+  where,
+} from "firebase/firestore";
 
+export const ImagesList = () => {
   //These state and functions are create just for your convience you can create modify or delete the state as per your requirement.
   const [images, setImages] = useState([]);
+  const [allImages, setAllImages] = useState([]); // for search
   const [loading, setLoading] = useState(false);
   const [searchIntent, setSearchIntent] = useState(false);
   const searchInput = useRef();
   // async function
   const getImages = async () => {
+    try {
+      setLoading(true);
 
+      const q = query(
+        collection(db, "images"),
+        where("albumName", "==", albumName),
+      );
+
+      const querySnapshot = getDocs(q);
+
+      const imageData = (await querySnapshot).docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setImages(imageData);
+      setAllImages(imageData);
+    } catch (error) {
+      console.error("Error fetching images:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const [addImageIntent, setAddImageIntent] = useState(false);
@@ -21,29 +53,95 @@ export const ImagesList = () => {
   const [activeImageIndex, setActiveImageIndex] = useState(null);
   const [activeHoverImageIndex, setActiveHoverImageIndex] = useState(null);
 
+  useEffect(() => {
+    if (albumName) getImages();
+  }, [albumName]);
+
   // function to handle toggle next image
   const handleNext = () => {
+    setActiveImageIndex((prev) => (prev + 1) % images.length);
   };
   // function to handle toggle previous image
   const handlePrev = () => {
+    setActiveImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
   };
-  // function to handle cancel  
-  const handleCancel = () => {};
+  // function to handle cancel
+  const handleCancel = () => {
+    setActiveImageIndex(null);
+  };
   // function to handle search functionality for image
   const handleSearchClick = () => {
+    setSearchIntent((prev) => !prev);
+
+    if (searchIntent) {
+      setImages(allImages);
+      searchInput.input.value = "";
+    }
   };
   // function to handle search functionality for image
   const handleSearch = async () => {
+    try {
+      const text = searchInput.current.value.toLowerCase();
+
+      const filtered = allImages.filter((img) => {
+        img.title.toLowerCase().includes(text);
+      });
+
+      setImages(filtered);
+    } catch (error) {
+      console.error("Error adding image:", error);
+    } finally {
+      setImgLoading(false);
+    }
   };
 
   // async functions
-  const handleAdd = async () => {
+  const handleAdd = async ({ title, url }) => {
+    try {
+      setImgLoading(true);
+
+      await addDoc(collection(db, "images"), {
+        title,
+        url,
+        albumName,
+      });
+
+      getImages();
+      setAddImageIntent(false);
+    } catch (error) {
+      console.error("Error adding image:", error);
+    } finally {
+      setImgLoading(false);
+    }
   };
   // function to handle update image
   const handleUpdate = async ({ title, url }) => {
+    try {
+      setImgLoading(true);
+
+      const imageRef = doc(db, "images", updateImageIntent.id);
+
+      await updateDoc(imageRef, { title, url });
+
+      getImages();
+      setUpdateImageIntent(null);
+    } catch (error) {
+      console.error("Error updating image:", error);
+    } finally {
+      setImgLoading(false);
+    }
   };
   // function to handle delete image
   const handleDelete = async (e, id) => {
+    e.stopPropagation();
+    try {
+      await deleteDoc(doc(db, "images", id));
+      getImages();
+    } catch (error) {
+      console.error("Error updating image:", error);
+    } finally {
+      setImgLoading(false);
+    }
   };
 
   if (!images.length && !searchInput.current?.value && !loading) {
