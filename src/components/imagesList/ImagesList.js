@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import Spinner from "react-spinner-material";
 import { ImageForm } from "../imageForm/ImageForm";
 import { Carousel } from "../carousel/Carousel";
+import { toast } from "react-toastify";
 import { db } from "../../firebase";
 import {
   collection,
@@ -15,7 +16,7 @@ import {
   where,
 } from "firebase/firestore";
 
-export const ImagesList = () => {
+export const ImagesList = ({ albumName, onBack }) => {
   //These state and functions are create just for your convience you can create modify or delete the state as per your requirement.
   const [images, setImages] = useState([]);
   const [allImages, setAllImages] = useState([]); // for search
@@ -106,10 +107,13 @@ export const ImagesList = () => {
         albumName,
       });
 
+      toast.success("Image added successfully");
+
       getImages();
       setAddImageIntent(false);
     } catch (error) {
       console.error("Error adding image:", error);
+      toast.error("Failed to add image");
     } finally {
       setImgLoading(false);
     }
@@ -123,10 +127,13 @@ export const ImagesList = () => {
 
       await updateDoc(imageRef, { title, url });
 
+      toast.success("Image updated successfully");
+
       getImages();
       setUpdateImageIntent(null);
     } catch (error) {
       console.error("Error updating image:", error);
+      toast.error("Failed to update image");
     } finally {
       setImgLoading(false);
     }
@@ -136,9 +143,11 @@ export const ImagesList = () => {
     e.stopPropagation();
     try {
       await deleteDoc(doc(db, "images", id));
+      toast.success("Image deleted successfully");
       getImages();
     } catch (error) {
       console.error("Error updating image:", error);
+      toast.error("Failed to delete image");
     } finally {
       setImgLoading(false);
     }

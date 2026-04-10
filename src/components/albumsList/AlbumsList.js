@@ -2,15 +2,16 @@ import { useState, useEffect } from "react";
 import { db } from "../../firebase";
 import { getDocs, collection, addDoc } from "firebase/firestore";
 import { AlbumForm } from "../albumForm/AlbumForm";
+import { toast } from "react-toastify";
 
-export const AlbumsList = () => {
+export const AlbumsList = ({ onAlbumClick }) => {
   //These state are create just for your convience you can create modify or delete the state as per your requirement.
 
   const [albums, setAlbums] = useState([]);
   const [loading, setLoading] = useState(false);
   const [albumAddLoading, setAlbumAddLoading] = useState(false);
   // create function to get all the album from the firebase.
-  const [setForm, showSetForm] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   // create function to handle adding of the album
 
   //fetch all albums
@@ -26,7 +27,7 @@ export const AlbumsList = () => {
       }));
 
       setAlbums(albumData);
-    } catch {
+    } catch (error) {
       console.error("Error fetching albums:", error);
     } finally {
       setLoading(false);
@@ -42,8 +43,14 @@ export const AlbumsList = () => {
         name: albumName,
         createdAt: new Date(),
       });
+
+      toast.success("Album created successfully");
+
+      getAlbums();
+      setShowForm(false);
     } catch (error) {
       console.error("Error adding album:", error);
+      toast.error("Failed to create album");
     } finally {
       setAlbumAddLoading(false);
     }
@@ -75,7 +82,7 @@ export const AlbumsList = () => {
         ) : (
           <div>
             {albums.map((album) => (
-              <div key={album.id}>
+              <div key={album.id} onClick={() => onAlbumClick(album.name)}>
                 <h3>{album.name}</h3>
               </div>
             ))}
